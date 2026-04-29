@@ -6,11 +6,11 @@ class OccupancyMLP(nn.Module):
         super().__init__()
 
         self.net = nn.Sequential(
-            nn.Linear(2, 128),
+            nn.Linear(2, 256),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(256, 256),
             nn.ReLU(),
-            nn.Linear(128, 1)
+            nn.Linear(256, 1)
         )
 
     def forward(self, x):

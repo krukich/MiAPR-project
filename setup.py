@@ -37,6 +37,7 @@ setup(
             'points = mlp_astar_planner.points:main',
             'generate_dataset = mlp_astar_planner.dataset_generator:main',
             'train_mlp = mlp_astar_planner.train_mlp:main',
+            'astar_mlp = mlp_astar_planner.astar_mlp:main',
         ],
     },
 )

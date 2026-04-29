@@ -20,9 +20,8 @@ class GridMap(Node):
         self.sub_map = self.create_subscription(OccupancyGrid, 'map', self.map_callback, qos_profile)
         self.sub_start_pt = self.create_subscription(Marker, 'point_start', self.set_start, 10)
         self.sub_end_pt = self.create_subscription(Marker, 'point_end', self.set_end, 10)
-
-        self.pub_map = self.create_publisher(OccupancyGrid, 'map_visited', 10)
-        self.pub_path = self.create_publisher(Path, 'path', 10)
+        self.pub_map = self.create_publisher(OccupancyGrid, 'map_visited', qos_profile)
+        self.pub_path = self.create_publisher(Path, 'path', qos_profile)
 
         self.get_logger().info("Object initialized!")
 

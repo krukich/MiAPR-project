@@ -8,7 +8,7 @@ import os
 def generate_launch_description():
     pkg_share = get_package_share_directory('mlp_astar_planner')
 
-    map_yaml = os.path.join(pkg_share, 'maps', 'map.yaml')
+    map_yaml = os.path.join(pkg_share, 'maps', 'map_large.yaml')
 
     map_server = Node(
         package='nav2_map_server',

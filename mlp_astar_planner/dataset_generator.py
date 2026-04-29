@@ -34,7 +34,7 @@ def load_map_from_yaml(yaml_path):
     occupancy[occ_prob > occupied_thresh] = 1.0
     occupancy[occ_prob < free_thresh] = 0.0
 
-    return occupancy
+    return img, occupancy
 
 
 def generate_dataset(occupancy):
@@ -56,26 +56,42 @@ def generate_dataset(occupancy):
             X.append([x_norm, y_norm])
             y.append([label])
 
-    X = np.array(X, dtype=np.float32)
-    y = np.array(y, dtype=np.float32)
+    return np.array(X, dtype=np.float32), np.array(y, dtype=np.float32)
 
-    return X, y
+
+def reconstruct_map_from_dataset(X, y, shape):
+    height, width = shape
+    reconstructed = np.full((height, width), 127, dtype=np.uint8)
+
+    for i in range(len(X)):
+        x_norm, y_norm = X[i]
+        label = y[i][0]
+
+        col = int(round(x_norm * (width - 1)))
+        row = int(round(y_norm * (height - 1)))
+
+        if label > 0.5:
+            reconstructed[row, col] = 0
+        else:
+            reconstructed[row, col] = 255
+
+    return reconstructed
 
 
 def main():
     pkg_share = get_package_share_directory("mlp_astar_planner")
-    yaml_path = os.path.join(pkg_share, "maps", "map.yaml")
+    yaml_path = os.path.join(pkg_share, "maps", "map_large.yaml")
 
-    occupancy = load_map_from_yaml(yaml_path)
+    original_img, occupancy = load_map_from_yaml(yaml_path)
     X, y = generate_dataset(occupancy)
+
+    reconstructed_img = reconstruct_map_from_dataset(X, y, occupancy.shape)
 
     workspace_dir = os.path.abspath(
         os.path.join(get_package_share_directory("mlp_astar_planner"), "..", "..", "..")
     )
 
-    package_src_dir = os.path.join(
-        workspace_dir, "src", "mlp_astar_planner"
-    )
+    package_src_dir = os.path.join(workspace_dir, "src", "mlp_astar_planner")
 
     data_dir = os.path.join(package_src_dir, "data")
     os.makedirs(data_dir, exist_ok=True)
@@ -89,6 +105,12 @@ def main():
     print(f"Free: {np.sum(y == 0.0)}")
     print(f"Occupied: {np.sum(y == 1.0)}")
     print(f"Saved to: {save_path}")
+
+    cv2.imshow("Original map", original_img)
+    cv2.imshow("Reconstructed from dataset", reconstructed_img)
+    print("Press any key to close windows...")
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

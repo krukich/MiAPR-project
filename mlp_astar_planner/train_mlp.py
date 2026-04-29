@@ -44,12 +44,18 @@ def main():
     X = torch.tensor(X_np, dtype=torch.float32)
     y = torch.tensor(y_np, dtype=torch.float32)
 
-    model = OccupancyMLP()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    X = torch.tensor(X_np, dtype=torch.float32).to(device)
+    y = torch.tensor(y_np, dtype=torch.float32).to(device)
+
+    model = OccupancyMLP().to(device)
 
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.005)
 
-    epochs = 5000
+    epochs = 500000
 
     for epoch in range(epochs):
         optimizer.zero_grad()
