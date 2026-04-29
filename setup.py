@@ -35,6 +35,8 @@ setup(
     entry_points={
         'console_scripts': [
             'points = mlp_astar_planner.points:main',
+            'generate_dataset = mlp_astar_planner.dataset_generator:main',
+            'train_mlp = mlp_astar_planner.train_mlp:main',
         ],
     },
 )
