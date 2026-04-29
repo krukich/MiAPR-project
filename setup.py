@@ -8,8 +8,18 @@ setup(
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
+         ['resource/mlp_astar_planner']),
+        ('share/mlp_astar_planner', ['package.xml']),
+        ('share/mlp_astar_planner/rviz', ['rviz/mlp_astar.rviz']),
+        ('share/mlp_astar_planner/launch', ['launch/mlp_astar.launch.py']),
+        ('share/mlp_astar_planner/maps', [
+            'maps/map.yaml',
+            'maps/map.pgm',
+            'maps/map_small.yaml',
+            'maps/map_small.pgm',
+            'maps/my_map.yaml',
+            'maps/my_map.pgm',
+        ]),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,6 +34,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'points = mlp_astar_planner.points:main',
         ],
     },
 )
