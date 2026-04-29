@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ROS2 / colcon
+build/
+install/
+log/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PyTorch / ML artifacts
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Generated datasets / outputs
+*.npy
+*.npz
+*.csv
+*.pkl
+*.pickle
+
+# RViz configs / temp files
+*.rviz~
