@@ -22,17 +22,14 @@ log/
 Thumbs.db
 
 # PyTorch / ML artifacts
-*.pt
-*.pth
+*.ptп
 *.ckpt
 *.onnx
 
 # Generated datasets / outputs
 *.npy
-*.npz
 *.csv
 *.pkl
 *.pickle
 
-# RViz configs / temp files
-*.rviz~
+
