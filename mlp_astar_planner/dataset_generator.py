@@ -80,18 +80,27 @@ def reconstruct_map_from_dataset(X, y, shape):
 
 def main():
     pkg_share = get_package_share_directory("mlp_astar_planner")
-    yaml_path = os.path.join(pkg_share, "maps", "map_large.yaml")
+
+    workspace_dir = os.path.abspath(
+        os.path.join(pkg_share, "..", "..", "..", "..")
+    )
+
+    package_src_dir = os.path.join(
+        workspace_dir,
+        "src",
+        "mlp_astar_planner"
+    )
+
+    yaml_path = os.path.join(
+        package_src_dir,
+        "maps",
+        "map_large.yaml"
+    )
 
     original_img, occupancy = load_map_from_yaml(yaml_path)
     X, y = generate_dataset(occupancy)
 
     reconstructed_img = reconstruct_map_from_dataset(X, y, occupancy.shape)
-
-    workspace_dir = os.path.abspath(
-        os.path.join(get_package_share_directory("mlp_astar_planner"), "..", "..", "..")
-    )
-
-    package_src_dir = os.path.join(workspace_dir, "src", "mlp_astar_planner")
 
     data_dir = os.path.join(package_src_dir, "data")
     os.makedirs(data_dir, exist_ok=True)
@@ -100,6 +109,7 @@ def main():
     np.savez(save_path, X=X, y=y, occupancy=occupancy)
 
     print("Dataset generated")
+    print(f"Map yaml: {yaml_path}")
     print(f"Map shape: {occupancy.shape}")
     print(f"Samples: {len(X)}")
     print(f"Free: {np.sum(y == 0.0)}")

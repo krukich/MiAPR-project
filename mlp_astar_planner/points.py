@@ -100,8 +100,8 @@ class PointsPublisher(Node):
         marker.pose.orientation.z = 0.0
         marker.pose.orientation.w = 1.0
 
-        marker.scale.x = 0.12
-        marker.scale.y = 0.12
+        marker.scale.x = 0.06
+        marker.scale.y = 0.06
         marker.scale.z = 0.02
 
         marker.color.r = color[0]

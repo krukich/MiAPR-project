@@ -11,13 +11,10 @@ from mlp_astar_planner.mlp_model import OccupancyMLP
 
 
 def get_project_data_dir():
+    pkg_share = get_package_share_directory("mlp_astar_planner")
+
     workspace_dir = os.path.abspath(
-        os.path.join(
-            get_package_share_directory("mlp_astar_planner"),
-            "..",
-            "..",
-            ".."
-        )
+        os.path.join(pkg_share, "..", "..", "..", "..")
     )
 
     data_dir = os.path.join(
@@ -40,9 +37,6 @@ def main():
     data = np.load(data_path)
     X_np = data["X"]
     y_np = data["y"]
-
-    X = torch.tensor(X_np, dtype=torch.float32)
-    y = torch.tensor(y_np, dtype=torch.float32)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -77,6 +71,7 @@ def main():
                 f"loss = {loss.item():.4f}, "
                 f"acc = {accuracy.item():.4f}"
             )
+
 
     torch.save(model.state_dict(), model_path)
 

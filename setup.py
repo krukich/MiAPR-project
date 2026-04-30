@@ -20,6 +20,14 @@ setup(
             'maps/my_map.yaml',
             'maps/my_map.pgm',
         ]),
+        ('share/mlp_astar_planner/launch', [
+            'launch/mlp_astar.launch.py',
+            'launch/astar_comparision.launch.py',
+        ]),
+        ('share/mlp_astar_planner/rviz', [
+            'rviz/mlp_astar.rviz',
+            'rviz/astar_comparision.rviz',
+        ]),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -38,6 +46,7 @@ setup(
             'generate_dataset = mlp_astar_planner.dataset_generator:main',
             'train_mlp = mlp_astar_planner.train_mlp:main',
             'astar_mlp = mlp_astar_planner.astar_mlp:main',
+            'astar_classic = mlp_astar_planner.astar_classic:main',
         ],
     },
 )

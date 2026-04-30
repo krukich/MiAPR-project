@@ -18,16 +18,16 @@ def generate_launch_description():
         "mlp_astar_planner"
     )
 
+    rviz_config = os.path.join(
+        package_src_dir,
+        "rviz",
+        "astar_comparision.rviz"
+    )
+
     map_yaml = os.path.join(
         package_src_dir,
         "maps",
         "map_large.yaml"
-    )
-
-    rviz_config = os.path.join(
-        package_src_dir,
-        "rviz",
-        "mlp_astar.rviz"
     )
 
     map_server = Node(
@@ -60,6 +60,33 @@ def generate_launch_description():
         ]
     )
 
+    astar_classic = TimerAction(
+        period=5.0,
+        actions=[
+            Node(
+                package="mlp_astar_planner",
+                executable="astar_classic",
+                name="classic_astar_node",
+                output="screen"
+            )
+        ]
+    )
+
+    astar_mlp = TimerAction(
+        period=5.5,
+        actions=[
+            Node(
+                package="mlp_astar_planner",
+                executable="astar_mlp",
+                name="mlp_astar_node",
+                output="screen"
+            )
+        ]
+    )
+
+    print(f"RViz config: {rviz_config}")
+    print(f"Exists: {os.path.exists(rviz_config)}")
+
     rviz = Node(
         package="rviz2",
         executable="rviz2",
@@ -72,5 +99,7 @@ def generate_launch_description():
         map_server,
         lifecycle_bringup,
         points,
+        astar_classic,
+        astar_mlp,
         rviz,
     ])
