@@ -48,7 +48,6 @@ class PointsPublisher(Node):
             self.get_logger().error("Not enough free cells on the map!")
             return
 
-        # Хотим, чтобы start и goal были не слишком близко
         min_manhattan = max(10, min(width, height) // 4)
 
         start_cell = None
