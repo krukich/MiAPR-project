@@ -8,15 +8,32 @@ import rclpy
 import torch
 import numpy as np
 
+from rclpy import qos
 from ament_index_python.packages import get_package_share_directory
 
 from mlp_astar_planner.grid_map import GridMap
 from mlp_astar_planner.mlp_model import OccupancyMLP
+from mlp_astar_planner.mlp_gradient_viz import MLPGradientVisualizer
 
 
 class MLPAstar(GridMap):
     def __init__(self):
-        super().__init__("mlp_astar_node")
+        super().__init__("mlp_astar_full_node")
+
+        qos_profile = qos.QoSProfile(depth=10)
+        qos_profile.durability = qos.DurabilityPolicy.TRANSIENT_LOCAL
+
+        self.pub_path = self.create_publisher(
+            self.pub_path.msg_type,
+            "path_mlp_full",
+            qos_profile,
+        )
+
+        self.pub_map = self.create_publisher(
+            self.pub_map.msg_type,
+            "map_visited_mlp_full",
+            qos_profile,
+        )
 
         self.lambda_grad = 4.0
         self.occupancy_threshold = 0.5
@@ -25,29 +42,49 @@ class MLPAstar(GridMap):
         self.model.load_state_dict(torch.load(self.get_model_path(), map_location="cpu"))
         self.model.eval()
 
+        self.gradient_viz = MLPGradientVisualizer(
+            self,
+            self.model,
+            "/mlp_full",
+            stride=6,
+            show_away_direction=False,
+        )
+
         self.get_logger().info("MLP model loaded")
+        self.get_logger().info("Experiment 2: full MLP A*")
 
     def get_model_path(self):
         pkg_share = get_package_share_directory("mlp_astar_planner")
+
+        installed_model = os.path.join(
+            pkg_share,
+            "data",
+            "mlp_model.pth",
+        )
+
+        if os.path.exists(installed_model):
+            return installed_model
 
         workspace_dir = os.path.abspath(
             os.path.join(pkg_share, "..", "..", "..", "..")
         )
 
-        return os.path.join(
+        source_model = os.path.join(
             workspace_dir,
             "src",
             "mlp_astar_planner",
             "data",
-            "mlp_model.pth"
+            "mlp_model.pth",
         )
+
+        return source_model
 
     def normalize_cell(self, x, y):
         width = self.map.info.width
         height = self.map.info.height
 
-        x_norm = x / (width - 1)
-        y_norm = (height - 1 - y) / (height - 1)
+        x_norm = x / max(width - 1, 1)
+        y_norm = (height - 1 - y) / max(height - 1, 1)
 
         return x_norm, y_norm
 
@@ -57,28 +94,70 @@ class MLPAstar(GridMap):
         inp = torch.tensor(
             [[x_norm, y_norm]],
             dtype=torch.float32,
-            requires_grad=True
+            requires_grad=True,
         )
 
         logit = self.model(inp)
         prob = torch.sigmoid(logit)
 
-        prob.backward()
+        grad = torch.autograd.grad(
+            prob,
+            inp,
+            retain_graph=False,
+            create_graph=False,
+        )[0]
 
-        grad = inp.grad.detach().numpy()[0]
-        grad_norm = float(np.linalg.norm(grad))
+        grad_np = grad.detach().cpu().numpy()[0]
+        grad_norm = float(np.linalg.norm(grad_np))
 
         return float(prob.item()), grad_norm
 
     def heuristics(self, pos):
-        #return ((pos[0] - self.end[0]) ** 2 + (pos[1] - self.end[1]) ** 2) ** 0.5
         return abs(pos[0] - self.end[0]) + abs(pos[1] - self.end[1])
 
+    def compute_path_length_m(self, path):
+        if len(path) < 2:
+            return 0.0
+
+        res = self.map.info.resolution
+        length_cells = 0.0
+
+        for i in range(1, len(path)):
+            dx = path[i][0] - path[i - 1][0]
+            dy = path[i][1] - path[i - 1][1]
+            length_cells += (dx * dx + dy * dy) ** 0.5
+
+        return length_cells * res
+
+    def publish_visited_layer(self, visited_map_data):
+        old_map_data = self.map.data
+
+        self.map.data = visited_map_data
+        self.publish_visited()
+
+        self.map.data = old_map_data
+
+    def reconstruct_path(self, came_from, start, goal):
+        path = []
+        node = goal
+
+        while node != start:
+            path.append(node)
+            node = came_from[node]
+
+        path.append(start)
+        path.reverse()
+
+        return path
+
     def search(self):
+        self.gradient_viz.publish(self.map)
+
         width = self.map.info.width
         height = self.map.info.height
 
-        self.map.data = list(self.map.data)
+        map_cell_count = width * height
+        visited_map_data = [0] * map_cell_count
 
         def to_index(x, y):
             return y * width + x
@@ -101,16 +180,12 @@ class MLPAstar(GridMap):
             (-1, 0, 1.0),
             (0, 1, 1.0),
             (0, -1, 1.0),
-            #(1, 1, 1.414),
-            #(1, -1, 1.414),
-            #(-1, 1, 1.414),
-            #(-1, -1, 1.414),
         ]
 
         t0 = time.perf_counter()
 
         while open_list:
-            f, current_g, current = pq.heappop(open_list)
+            _, current_g, current = pq.heappop(open_list)
 
             if current in visited:
                 continue
@@ -118,28 +193,21 @@ class MLPAstar(GridMap):
             visited.add(current)
 
             if current != start and current != goal:
-                self.map.data[to_index(current[0], current[1])] = 50
+                idx = to_index(current[0], current[1])
+                visited_map_data[idx] = 50
 
             if current == goal:
-                path = []
-                node = current
-
-                while node != start:
-                    path.append(node)
-                    node = came_from[node]
-
-                path.append(start)
-                path.reverse()
+                path = self.reconstruct_path(came_from, start, goal)
 
                 planning_time = time.perf_counter() - t0
                 path_length_cells = len(path) - 1
                 path_length_m = self.compute_path_length_m(path)
 
-                self.publish_visited()
+                self.publish_visited_layer(visited_map_data)
                 self.publish_path(path)
 
                 self.get_logger().info(
-                    f"Path found | "
+                    f"Full MLP A* path found | "
                     f"time={planning_time:.4f}s | "
                     f"visited={len(visited)} | "
                     f"path_cells={path_length_cells} | "
@@ -164,36 +232,24 @@ class MLPAstar(GridMap):
                     continue
 
                 gradient_penalty = self.lambda_grad * grad_norm
-                tentative_g = g_score[current] + move_cost + gradient_penalty
+                tentative_g = current_g + move_cost + gradient_penalty
 
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
                     g_score[neighbor] = tentative_g
                     came_from[neighbor] = current
+
                     f_score = tentative_g + self.heuristics(neighbor)
                     pq.heappush(open_list, (f_score, tentative_g, neighbor))
 
         planning_time = time.perf_counter() - t0
-        self.publish_visited()
+
+        self.publish_visited_layer(visited_map_data)
 
         self.get_logger().warn(
-            f"Path not found | "
+            f"Full MLP A* path not found | "
             f"time={planning_time:.4f}s | "
             f"visited={len(visited)}"
         )
-
-    def compute_path_length_m(self, path):
-        if len(path) < 2:
-            return 0.0
-
-        res = self.map.info.resolution
-        length_cells = 0.0
-
-        for i in range(1, len(path)):
-            dx = path[i][0] - path[i - 1][0]
-            dy = path[i][1] - path[i - 1][1]
-            length_cells += (dx * dx + dy * dy) ** 0.5
-
-        return length_cells * res
 
 
 def main(args=None):
@@ -206,7 +262,7 @@ def main(args=None):
         rclpy.spin_once(planner)
         time.sleep(0.5)
 
-    planner.get_logger().info("Start MLP A* planning")
+    planner.get_logger().info("Start full MLP A* planning")
     planner.search()
 
     rclpy.spin(planner)

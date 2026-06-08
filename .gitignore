@@ -7,6 +7,11 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 resize.py
+benchmark_methods.py
+gradient_only.launch.py
+mlp_gradient_only.py
+mlp_gradient_viz.py
+gradient_only.rviz
 
 # ROS2 / colcon
 build/
