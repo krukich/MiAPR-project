@@ -17,7 +17,7 @@ gradient_only.rviz
 build/
 install/
 log/
-results/
+
 # IDE
 .idea/
 .vscode/
