@@ -49,7 +49,7 @@ def main():
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.005)
 
-    epochs = 500000
+    epochs = 100000
 
     for epoch in range(epochs):
         optimizer.zero_grad()
